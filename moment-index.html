@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>生活碎片 Moments</title>
+  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.4/dist/tailwind.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fff0f6;
+      --fg: #4f2d3f;
+      --panel: rgba(255, 241, 246, 0.9);
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-soft: rgba(255, 241, 246, 0.92);
+      --border: rgba(237, 168, 184, 0.35);
+      --heading: #7b3656;
+      --subtext: #a86a88;
+      --button-bg: #ec4899;
+      --button-text: #ffffff;
+      --button-bg-soft: #ffe4f0;
+      --button-text-soft: #9d174d;
+      --toast-bg: rgba(255, 241, 246, 0.95);
+      --shadow: 0 35px 70px rgba(180, 105, 128, 0.12);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(255, 214, 236, 0.45), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(255, 235, 244, 0.38), transparent 18%),
+        var(--bg);
+      color: var(--fg);
+      font-family: "Inter", "Noto Sans SC", "PingFang SC", sans-serif;
+      transition: background 0.45s ease, color 0.45s ease, opacity 0.45s ease;
+      opacity: 1;
+      overflow-x: hidden;
+    }
+
+    .glass-panel {
+      backdrop-filter: blur(20px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .glass-panel {
+        border-radius: 2rem;
+        padding: 2.5rem;
+      }
+    }
+
+    .soft-input,
+    .soft-date {
+      width: 100%;
+      border-radius: 1.25rem;
+      border: 1.5px solid var(--border);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--fg);
+      font: inherit;
+      padding: 0.875rem 1.25rem;
+      transition: border-color 0.32s ease, box-shadow 0.32s ease, background 0.32s ease;
+      backdrop-filter: blur(8px);
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    @media (min-width: 768px) {
+      .soft-input,
+      .soft-date {
+        border-radius: 1.5rem;
+        padding: 1rem 1.6rem;
+      }
+    }
+
+    .soft-input::placeholder,
+    .soft-date::placeholder {
+      color: var(--subtext);
+      opacity: 0.6;
+    }
+
+    .date-picker-label {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 1rem 1.6rem;
+      border-radius: 1.5rem;
+      border: 1.5px solid var(--border);
+      background: var(--surface-soft);
+      cursor: pointer;
+      transition: border-color 0.32s ease, box-shadow 0.32s ease, background 0.32s ease;
+    }
+
+    .date-picker-label:hover {
+      border-color: rgba(237, 148, 186, 0.75);
+    }
+
+    .date-picker-label:focus-within {
+      border-color: rgba(237, 148, 186, 0.95);
+      box-shadow: 0 0 0 8px rgba(237, 148, 186, 0.16);
+      background: rgba(255, 241, 246, 0.95);
+    }
+
+    .date-picker-label .soft-date {
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      min-height: auto;
+      width: 100%;
+      outline: none;
+      color: var(--fg);
+    }
+
+    .theme-heading {
+      color: var(--heading);
+    }
+
+    .theme-subtext {
+      color: var(--subtext);
+    }
+
+    .theme-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .theme-card-soft {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+    }
+
+    .theme-text {
+      color: var(--fg);
+    }
+
+    .theme-button-main {
+      background: var(--button-bg);
+      color: var(--button-text);
+    }
+
+    .theme-button-soft {
+      background: var(--button-bg-soft);
+      color: var(--button-text-soft);
+    }
+
+    .soft-input {
+      min-height: 200px;
+      resize: vertical;
+      outline: none;
+      line-height: 1.75;
+    }
+
+    @media (min-width: 768px) {
+      .soft-input {
+        min-height: 260px;
+      }
+    }
+
+    .soft-input:focus,
+    .soft-date:focus {
+      border-color: rgba(144, 180, 230, 0.85);
+      box-shadow: 0 0 0 8px rgba(144, 180, 230, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .soft-input.typing {
+      animation: textFade 0.32s ease;
+    }
+
+    @keyframes textFade {
+      from {
+        color: rgba(74, 74, 74, 0.2);
+      }
+      to {
+        color: inherit;
+      }
+    }
+
+    .btn-soft {
+      border-radius: 999px;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: transform 0.18s ease, background 0.35s ease, box-shadow 0.35s ease;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      border: none;
+      min-height: 48px;
+      margin-top: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .btn-soft {
+        padding: 1.1rem 2rem;
+        font-size: 1.05rem;
+        margin-top: 1.25rem;
+      }
+    }
+
+    .btn-soft:hover {
+      transform: scale(1.03);
+      box-shadow: 0 16px 28px rgba(244, 114, 182, 0.18);
+    }
+
+    .btn-soft:active {
+      transform: scale(0.97);
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      padding: 0.95rem 1.3rem;
+      background: var(--toast-bg);
+      color: var(--fg);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease;
+      z-index: 50;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+
+    .page-container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 1.5rem;
+      padding-bottom: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .page-container {
+        padding-left: 2rem;
+        padding-right: 2rem;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .page-container {
+        padding-left: 3rem;
+        padding-right: 3rem;
+      }
+    }
+
+    .page-title {
+      font-size: 1.875rem;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    @media (min-width: 640px) {
+      .page-title {
+        font-size: 2.5rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .page-title {
+        font-size: 3rem;
+      }
+    }
+
+    .module-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 8px 24px rgba(180, 105, 128, 0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .module-section {
+        border-radius: 2rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+    }
+
+    .module-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .module-title {
+        font-size: 1.5rem;
+      }
+    }
+
+    .module-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 1.5rem;
+      background: var(--button-bg);
+      border-radius: 2px;
+    }
+
+    .archive-month-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.8rem;
+    }
+
+    @media (min-width: 768px) {
+      .archive-month-title {
+        font-size: 1.3rem;
+        margin-bottom: 1.2rem;
+      }
+    }
+
+    .archive-month-count {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--subtext);
+    }
+
+    @media (min-width: 768px) {
+      .archive-month-count {
+        font-size: 0.9rem;
+      }
+    }
+
+    .archive-day-item {
+      background: rgba(255, 255, 255, 0.5);
+      padding: 1rem;
+      border-radius: 1rem;
+      border-left: 3px solid var(--button-bg);
+      line-height: 1.7;
+    }
+
+    @media (min-width: 768px) {
+      .archive-day-item {
+        padding: 1.2rem;
+        border-radius: 1.2rem;
+        line-height: 1.8;
+      }
+    }
+
+    .archive-day-item:nth-child(odd) {
+      background: rgba(255, 241, 246, 0.6);
+    }
+    
+    .calendar-container {
+      width: 100%;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .calendar-nav-btn {
+      background: var(--button-bg-soft);
+      color: var(--button-text-soft);
+      border: none;
+      border-radius: 50%;
+      width: 2.75rem;
+      height: 2.75rem;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    @media (min-width: 768px) {
+      .calendar-nav-btn {
+        width: 3rem;
+        height: 3rem;
+      }
+    }
+    
+    .calendar-nav-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .calendar-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--heading);
+    }
+
+    @media (min-width: 768px) {
+      .calendar-title {
+        font-size: 1.3rem;
+      }
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.35rem;
+    }
+
+    @media (min-width: 640px) {
+      .calendar-grid {
+        gap: 0.5rem;
+      }
+    }
+    
+    .calendar-weekday {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--subtext);
+      padding: 0.4rem;
+    }
+
+    @media (min-width: 640px) {
+      .calendar-weekday {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+      }
+    }
+    
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--fg);
+      transition: all 0.2s;
+      position: relative;
+      min-height: 40px;
+    }
+
+    @media (min-width: 640px) {
+      .calendar-day {
+        font-size: 1rem;
+        min-height: 44px;
+      }
+    }
+    
+    .calendar-day:hover {
+      background: rgba(237, 148, 186, 0.2);
+    }
+    
+    .calendar-day.has-entry {
+      background: var(--button-bg);
+      color: white;
+      font-weight: 600;
+    }
+    
+    .calendar-day.has-entry:hover {
+      transform: scale(1.1);
+    }
+    
+    .calendar-day.other-month {
+      color: rgba(0, 0, 0, 0.3);
+    }
+    
+    .calendar-day.selected {
+      box-shadow: 0 0 0 3px var(--button-bg);
+    }
+    
+    
+    
+    .detail-entries {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    
+    .entry-nav-panel {
+      margin-top: 1.25rem;
+      padding: 1.25rem;
+      background: var(--surface-soft);
+      border-radius: 1.25rem;
+      border: 1px solid var(--border);
+    }
+
+    @media (min-width: 768px) {
+      .entry-nav-panel {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+      }
+    }
+    
+    .entry-nav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.875rem;
+      gap: 0.75rem;
+    }
+    
+    .entry-nav-btn {
+      background: var(--button-bg-soft);
+      color: var(--button-text-soft);
+      border: none;
+      border-radius: 50%;
+      width: 2.75rem;
+      height: 2.75rem;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    @media (min-width: 768px) {
+      .entry-nav-btn {
+        width: 3rem;
+        height: 3rem;
+      }
+    }
+    
+    .entry-nav-btn:hover:not(:disabled) {
+      transform: scale(1.1);
+    }
+    
+    .entry-nav-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .entry-nav-date {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--heading);
+      text-align: center;
+      flex: 1;
+    }
+
+    @media (min-width: 768px) {
+      .entry-nav-date {
+        font-size: 1.2rem;
+      }
+    }
+    
+    .entry-nav-empty {
+      text-align: center;
+      color: var(--subtext);
+      padding: 2rem;
+    }
+
+    /* 今日心语卡片样式 */
+    .heal-card {
+      background: rgba(255, 241, 246, 0.85);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 35px rgba(180, 105, 128, 0.1);
+      border: 1px solid rgba(237, 168, 184, 0.25);
+    }
+
+    @media (min-width: 768px) {
+      .heal-card {
+        border-radius: 2rem;
+        padding: 2.2rem 2rem;
+      }
+    }
+
+    .heal-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--heading);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .heal-card-title {
+        font-size: 1.15rem;
+        margin-bottom: 1.4rem;
+      }
+    }
+
+    .heal-card-content {
+      text-align: center;
+      font-size: 1rem;
+      color: #b06b8f;
+      line-height: 1.7;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    @media (min-width: 768px) {
+      .heal-card-content {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .date-weather-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .date-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.875rem 1.25rem;
+      border-radius: 1.25rem;
+      border: 1.5px solid var(--border);
+      background: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      transition: border-color 0.32s ease, box-shadow 0.32s ease, background 0.32s ease;
+      user-select: none;
+      min-height: 48px;
+    }
+
+    @media (min-width: 768px) {
+      .date-selector {
+        padding: 1rem 1.6rem;
+        border-radius: 1.5rem;
+      }
+    }
+
+    .date-selector:hover {
+      border-color: rgba(237, 148, 186, 0.75);
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .date-selector:focus-within {
+      border-color: rgba(237, 148, 186, 0.95);
+      box-shadow: 0 0 0 8px rgba(237, 148, 186, 0.16);
+      background: rgba(255, 241, 246, 0.95);
+    }
+
+    .date-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      color: var(--fg);
+      font: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    
+    .date-input::-webkit-calendar-picker-indicator {
+      opacity: 0.7;
+      cursor: pointer;
+    }
+
+    
+
+    .weather-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.875rem 1.25rem;
+      border-radius: 1.25rem;
+      border: 1.5px solid var(--border);
+      background: rgba(255, 255, 255, 0.7);
+      transition: border-color 0.32s ease, background 0.32s ease;
+      min-height: 48px;
+    }
+
+    @media (min-width: 768px) {
+      .weather-selector {
+        padding: 1rem 1.6rem;
+        border-radius: 1.5rem;
+      }
+    }
+
+    .weather-selector:hover {
+      border-color: rgba(237, 148, 186, 0.75);
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .weather-label {
+      color: var(--heading);
+      font-size: 0.95rem;
+      font-weight: 500;
+      white-space: nowrap;
+      margin-right: 0.4rem;
+    }
+
+    .weather-icons {
+      display: flex;
+      gap: 0.6rem;
+      flex: 1;
+    }
+
+    .weather-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+      background: transparent;
+      border: 2px solid transparent;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    @media (min-width: 768px) {
+      .weather-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.4rem;
+      }
+    }
+
+    .weather-icon:hover {
+      background: rgba(237, 168, 184, 0.15);
+      transform: scale(1.1);
+    }
+
+    .weather-icon.selected {
+      background: var(--button-bg-soft);
+      border-color: var(--button-bg);
+    }
+
+    @media (max-width: 768px) {
+      .date-weather-container {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+
+      .weather-icons {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .glass-panel {
+        border-radius: 1.5rem;
+        padding: 1.25rem;
+      }
+
+      .weather-icons {
+        gap: 0.5rem;
+      }
+
+      .detail-entries {
+        gap: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container relative z-10 min-h-screen flex items-center justify-center">
+    <div class="glass-panel w-full max-w-4xl">
+      <!-- 第一部分：顶部区域 -->
+      <section class="mb-8 md:mb-10">
+        <div class="mb-6 md:mb-8">
+          <h1 class="page-title theme-heading mb-3">生活碎片 Moments</h1>
+          <p class="theme-subtext text-base">极简记录，留白空间让心情自在流淌。</p>
+        </div>
+
+        <div class="heal-card">
+          <div class="heal-card-title">✨ 今日心语</div>
+          <div id="healQuote" class="heal-card-content">记录微小美好 ✨</div>
+        </div>
+      </section>
+
+      <!-- 第二部分：记日历 -->
+      <section class="module-section">
+        <div class="module-title theme-heading">记日历</div>
+        <p class="text-sm theme-subtext mb-6">输入时会自动保存为草稿，保存后会归档到月份列表。</p>
+
+        <div class="space-y-5">
+          <div class="date-weather-container">
+            <div class="date-selector" id="dateSelector">
+              <span class="theme-heading">📅</span>
+              <input id="entryDate" type="date" class="date-input" />
+            </div>
+
+            <div class="weather-selector">
+              <span class="weather-label">心情</span>
+              <div class="weather-icons" id="weatherIcons">
+                <div class="weather-icon" data-weather="sunny" title="晴天">☀️</div>
+                <div class="weather-icon" data-weather="rainy" title="雨天">☔️</div>
+                <div class="weather-icon" data-weather="windy" title="大风">💨</div>
+                <div class="weather-icon" data-weather="cloudy" title="多云">☁️</div>
+              </div>
+            </div>
+          </div>
+
+          <textarea
+            id="diaryText"
+            class="soft-input"
+            placeholder="写下今天的心情、光影、一个瞬间的温柔..."
+          ></textarea>
+
+          <button id="saveBtn" class="btn-soft theme-button-main shadow-md">💾 保存日记</button>
+        </div>
+      </section>
+
+      <!-- 第三部分：日记归档 -->
+      <section class="module-section">
+        <div class="module-title theme-heading">日记归档</div>
+        <p id="archiveSummary" class="text-sm theme-subtext mb-6 md:mb-8">按月份整理。</p>
+        <div id="archiveWrapper" class="space-y-6 md:space-y-8"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const themeList = [
+      {
+        name: "粉樱",
+        body: "#fff0f6",
+        fg: "#55334a",
+        panel: "rgba(255, 241, 246, 0.92)",
+        surface: "rgba(255, 255, 255, 0.92)",
+        surfaceSoft: "rgba(255, 241, 246, 0.92)",
+        border: "rgba(237, 168, 184, 0.45)",
+        heading: "#7b3656",
+        subtext: "#a86a88",
+        buttonBg: "#ec4899",
+        buttonText: "#ffffff",
+        buttonBgSoft: "#ffe4f0",
+        buttonTextSoft: "#9d174d",
+        toastBg: "rgba(255, 241, 246, 0.95)",
+        muted: "#a96b8f",
+        lines: [255, 236, 245, 36],
+      },
+      {
+        name: "暮光",
+        body: "#21152a",
+        fg: "#f5d0e6",
+        panel: "rgba(42, 20, 46, 0.78)",
+        surface: "rgba(30, 14, 39, 0.94)",
+        surfaceSoft: "rgba(42, 20, 46, 0.88)",
+        border: "rgba(189, 125, 164, 0.45)",
+        heading: "#f3c1e7",
+        subtext: "#ddb2db",
+        buttonBg: "#be185d",
+        buttonText: "#ffffff",
+        buttonBgSoft: "rgba(255, 255, 255, 0.08)",
+        buttonTextSoft: "#f3c8e3",
+        toastBg: "rgba(255, 255, 255, 0.12)",
+        muted: "#c4a2c0",
+        lines: [57, 22, 55, 30],
+      },
+    ];
+
+    const quotes = [
+      "风里已经有春天的味道了",
+      "今日宜松弛",
+      "记录微小美好",
+      "让每一刻轻轻落笔",
+      "留一行给温柔的未来",
+      "今天的暖意，悄悄收藏",
+      "阳光洒在书页上",
+      "温柔是给自己的礼物",
+      "时光清浅，许你安然",
+      "慢慢来，比较快",
+      "人间烟火气，最抚凡人心",
+      "把烦恼轻轻放下",
+      "今天也在好好生活",
+      "保持热爱，奔赴山海"
+    ];
+
+    const DRAFT_KEY = "vibe-diary-draft";
+    const ENTRIES_KEY = "vibe-diary-entries";
+    const THEME_KEY = "vibe-diary-theme";
+
+    let themeIndex = 0;
+    let entries = [];
+    let toastTimer = null;
+    let saveDraftDebounced = null;
+    let currentWeather = null;
+    let currentCalendarDate = new Date();
+    let selectedDate = null;
+    let currentEntryIndex = 0;
+
+    function safeParse(value, fallback) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function safeStorageGet(key, fallback) {
+      try {
+        return safeParse(localStorage.getItem(key), fallback);
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function safeStorageSet(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        // ignore storage failures
+      }
+    }
+
+    function applyTheme(index) {
+      themeIndex = index;
+      const theme = themeList[index];
+      document.documentElement.style.setProperty("--bg", theme.body);
+      document.documentElement.style.setProperty("--fg", theme.fg);
+      document.documentElement.style.setProperty("--panel", theme.panel);
+      document.documentElement.style.setProperty("--surface", theme.surface);
+      document.documentElement.style.setProperty("--surface-soft", theme.surfaceSoft);
+      document.documentElement.style.setProperty("--border", theme.border);
+      document.documentElement.style.setProperty("--heading", theme.heading);
+      document.documentElement.style.setProperty("--subtext", theme.subtext);
+      document.documentElement.style.setProperty("--button-bg", theme.buttonBg);
+      document.documentElement.style.setProperty("--button-text", theme.buttonText);
+      document.documentElement.style.setProperty("--button-bg-soft", theme.buttonBgSoft);
+      document.documentElement.style.setProperty("--button-text-soft", theme.buttonTextSoft);
+      document.documentElement.style.setProperty("--toast-bg", theme.toastBg);
+      document.body.style.background = theme.body;
+      document.body.style.color = theme.fg;
+      safeStorageSet(THEME_KEY, index);
+    }
+
+    function formatMonthLabel(date) {
+      return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(new Date(date + "T00:00"));
+    }
+
+    function formatDateLabel(date) {
+      return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(new Date(date + "T00:00"));
+    }
+
+    function getRandomQuote() {
+      return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function loadDraft() {
+      const draft = safeStorageGet(DRAFT_KEY, {});
+      const diaryText = document.getElementById("diaryText");
+      const entryDate = document.getElementById("entryDate");
+      const today = new Date().toISOString().slice(0, 10);
+      
+      diaryText.value = draft.text || "";
+      // 始终默认显示当天日期
+      entryDate.value = today;
+      if (draft.weather) {
+        currentWeather = draft.weather;
+        updateWeatherDisplay();
+      }
+    }
+
+    function saveDraft() {
+      const diaryText = document.getElementById("diaryText");
+      const entryDate = document.getElementById("entryDate");
+      safeStorageSet(DRAFT_KEY, {
+        text: diaryText.value,
+        date: entryDate.value || new Date().toISOString().slice(0, 10),
+        weather: currentWeather || null,
+      });
+    }
+
+    function loadEntries() {
+      return safeStorageGet(ENTRIES_KEY, []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
+
+    function saveEntry() {
+      const diaryText = document.getElementById("diaryText");
+      const entryDate = document.getElementById("entryDate");
+      const text = diaryText.value.trim();
+      const date = entryDate.value || new Date().toISOString().slice(0, 10);
+      if (!text) {
+        showToast("写点温柔的日记，再来保存吧");
+        return;
+      }
+      const now = Date.now();
+      const newEntry = { id: `${date}-${now}`, date, text, weather: currentWeather, createdAt: now };
+      entries = [newEntry, ...loadEntries()];
+      safeStorageSet(ENTRIES_KEY, entries);
+      diaryText.value = "";
+      currentWeather = null;
+      updateWeatherDisplay();
+      saveDraft();
+      
+      // 找到刚保存日期在排序列表中的索引
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      currentEntryIndex = sortedUniqueDates.indexOf(date);
+      selectedDate = date;
+      
+      renderCalendar();
+      showToast("保存成功，已归档到本地");
+      renderQuote();
+    }
+
+    
+
+    function updateWeatherDisplay() {
+      const weatherIcons = document.getElementById("weatherIcons");
+      const icons = weatherIcons.querySelectorAll(".weather-icon");
+      icons.forEach(icon => {
+        if (icon.dataset.weather === currentWeather) {
+          icon.classList.add("selected");
+        } else {
+          icon.classList.remove("selected");
+        }
+      });
+    }
+
+    function formatTimeLabel(timestamp) {
+      return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
+    }
+
+    function getWeatherEmoji(weather) {
+      const weatherMap = {
+        sunny: "☀️",
+        rainy: "☔️",
+        windy: "💨",
+        cloudy: "☁️",
+        snowy: "❄️"
+      };
+      return weatherMap[weather] || "";
+    }
+    
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function groupEntriesByMonth(items) {
+      const groups = {};
+      items.forEach((item) => {
+        const month = formatMonthLabel(item.date);
+        if (!groups[month]) groups[month] = [];
+        groups[month].push(item);
+      });
+      return groups;
+    }
+
+    function renderCalendar() {
+      entries = loadEntries();
+      const archiveWrapper = document.getElementById("archiveWrapper");
+      const archiveSummary = document.getElementById("archiveSummary");
+      
+      if (!entries.length) {
+        archiveSummary.textContent = "暂无归档，写一篇日记开始你的氛围旅程。";
+        archiveWrapper.innerHTML = `
+          <div class="rounded-[28px] theme-card-soft p-6 theme-subtext">暂无记录</div>
+          <div class="entry-nav-panel">
+            <div class="entry-nav-empty">无</div>
+          </div>
+        `;
+        return;
+      }
+      
+      archiveSummary.textContent = `共 ${entries.length} 条日记，选择日期或下方切换查看。`;
+      
+      // 获取有日记的日期，按日期排序
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      
+      // 确保currentEntryIndex在有效范围内
+      if (currentEntryIndex >= sortedUniqueDates.length) {
+        currentEntryIndex = sortedUniqueDates.length - 1;
+      }
+      if (currentEntryIndex < 0) {
+        currentEntryIndex = 0;
+      }
+      
+      // 如果没有选中日期，选中当前索引对应的日期
+      if (!selectedDate) {
+        selectedDate = sortedUniqueDates[currentEntryIndex];
+      }
+      
+      // 获取有日记的日期集合
+      const entryDates = new Set(entries.map(e => e.date));
+      
+      // 构建月历
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+      
+      // 当月第一天
+      const firstDay = new Date(year, month, 1);
+      // 当月最后一天
+      const lastDay = new Date(year, month + 1, 0);
+      
+      // 日历起始日期（包含上个月的天数）
+      const startDay = new Date(firstDay);
+      startDay.setDate(startDay.getDate() - firstDay.getDay());
+      
+      const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+      
+      let calendarHTML = `
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button class="calendar-nav-btn" onclick="prevMonth()">‹</button>
+            <span class="calendar-title">${year}年${month + 1}月</span>
+            <button class="calendar-nav-btn" onclick="nextMonth()">›</button>
+          </div>
+          <div class="calendar-grid">
+            ${weekdays.map(d => `<div class="calendar-weekday">${d}</div>`).join("")}
+      `;
+      
+      // 填充日期
+      for (let i = 0; i < 42; i++) {
+        const day = new Date(startDay);
+        day.setDate(startDay.getDate() + i);
+        const dateStr = day.toISOString().slice(0, 10);
+        const isOtherMonth = day.getMonth() !== month;
+        const hasEntry = entryDates.has(dateStr);
+        const isSelected = selectedDate === dateStr;
+        
+        let classes = "calendar-day";
+        if (isOtherMonth) classes += " other-month";
+        if (hasEntry) classes += " has-entry";
+        if (isSelected) classes += " selected";
+        
+        calendarHTML += `
+          <div class="${classes}" onclick="selectDate('${dateStr}')">
+            ${day.getDate()}
+          </div>
+        `;
+      }
+      
+      calendarHTML += `
+          </div>
+        </div>
+      `;
+      
+      // 添加记录导航面板
+      const currentDate = sortedUniqueDates[currentEntryIndex];
+      const dayEntries = entries.filter(e => e.date === currentDate);
+      
+      calendarHTML += `
+        <div class="entry-nav-panel">
+          <div class="entry-nav-header">
+            <button class="entry-nav-btn" onclick="prevEntry()" ${currentEntryIndex === 0 ? "disabled" : ""}>‹</button>
+            <span class="entry-nav-date">
+              📅 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date(currentDate + "T00:00"))}
+            </span>
+            <button class="entry-nav-btn" onclick="nextEntry()" ${currentEntryIndex === sortedUniqueDates.length - 1 ? "disabled" : ""}>›</button>
+          </div>
+          <div class="detail-entries">
+            ${dayEntries
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map(
+                (item) => `
+                  <div class="archive-day-item theme-text">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                      ${getWeatherEmoji(item.weather)}
+                      <p class="text-sm whitespace-pre-wrap" style="margin:0;">${escapeHtml(item.text)}</p>
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+      
+      archiveWrapper.innerHTML = calendarHTML;
+    }
+    
+    function prevMonth() {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    }
+    
+    function nextMonth() {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    }
+    
+    function selectDate(dateStr) {
+      selectedDate = dateStr;
+      // 找到该日期在排序列表中的索引
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      currentEntryIndex = sortedUniqueDates.indexOf(dateStr);
+      if (currentEntryIndex === -1) currentEntryIndex = 0;
+      // 切换日历到该日期所在月份
+      const date = new Date(dateStr + "T00:00");
+      currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      renderCalendar();
+    }
+    
+    function prevEntry() {
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      if (currentEntryIndex > 0) {
+        currentEntryIndex--;
+        selectedDate = sortedUniqueDates[currentEntryIndex];
+        // 切换日历到该日期所在月份
+        const date = new Date(selectedDate + "T00:00");
+        currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        renderCalendar();
+      }
+    }
+    
+    function nextEntry() {
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      if (currentEntryIndex < sortedUniqueDates.length - 1) {
+        currentEntryIndex++;
+        selectedDate = sortedUniqueDates[currentEntryIndex];
+        // 切换日历到该日期所在月份
+        const date = new Date(selectedDate + "T00:00");
+        currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        renderCalendar();
+      }
+    }
+
+    function renderQuote() {
+      const healQuote = document.getElementById("healQuote");
+      healQuote.textContent = getRandomQuote() + " ✨";
+    }
+
+    function debounce(fn, delay = 200) {
+      let timer = null;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+    function bindEventListeners() {
+      const saveBtn = document.getElementById("saveBtn");
+      const dateSelector = document.getElementById("dateSelector");
+      const entryDate = document.getElementById("entryDate");
+      const weatherIcons = document.getElementById("weatherIcons");
+      const diaryText = document.getElementById("diaryText");
+
+      if (saveBtn) {
+        saveBtn.addEventListener("click", saveEntry);
+      }
+
+      if (entryDate) {
+        entryDate.addEventListener("change", () => {
+          saveDraft();
+        });
+      }
+
+      if (weatherIcons) {
+        weatherIcons.querySelectorAll(".weather-icon").forEach(icon => {
+          icon.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const weather = icon.dataset.weather;
+            currentWeather = currentWeather === weather ? null : weather;
+            updateWeatherDisplay();
+            saveDraft();
+          });
+        });
+      }
+
+      if (diaryText) {
+        diaryText.addEventListener("input", () => {
+          diaryText.classList.add("typing");
+          window.requestAnimationFrame(() => diaryText.classList.remove("typing"));
+          saveDraftDebounced();
+        });
+      }
+    }
+
+    window.addEventListener("load", () => {
+      loadDraft();
+      updateWeatherDisplay();
+      renderQuote();
+      const savedTheme = safeStorageGet(THEME_KEY, 0);
+      applyTheme(Number.isInteger(savedTheme) ? savedTheme : 0);
+      renderCalendar();
+      document.body.style.opacity = "1";
+      
+      // 绑定事件监听器
+      bindEventListeners();
+      saveDraftDebounced = debounce(saveDraft, 260);
+    });
+  </script>
+</body>
+</html>
