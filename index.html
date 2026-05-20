@@ -910,6 +910,9 @@
 
     function safeParse(value, fallback) {
       try {
+        if (value === null || value === undefined) {
+          return fallback;
+        }
         return JSON.parse(value);
       } catch (e) {
         return fallback;
@@ -918,7 +921,8 @@
 
     function safeStorageGet(key, fallback) {
       try {
-        return safeParse(localStorage.getItem(key), fallback);
+        const value = localStorage.getItem(key);
+        return safeParse(value, fallback);
       } catch (e) {
         return fallback;
       }
@@ -953,12 +957,26 @@
       safeStorageSet(THEME_KEY, index);
     }
 
+    // 安全的日期格式化函数，避免时区问题
+    function parseLocalDate(dateStr) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    function getTodayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
     function formatMonthLabel(date) {
-      return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(new Date(date + "T00:00"));
+      return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" }).format(parseLocalDate(date));
     }
 
     function formatDateLabel(date) {
-      return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(new Date(date + "T00:00"));
+      return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(parseLocalDate(date));
     }
 
     function getRandomQuote() {
@@ -977,23 +995,31 @@
       const draft = safeStorageGet(DRAFT_KEY, {});
       const diaryText = document.getElementById("diaryText");
       const entryDate = document.getElementById("entryDate");
-      const today = new Date().toISOString().slice(0, 10);
       
-      diaryText.value = draft.text || "";
-      // 始终默认显示当天日期
-      entryDate.value = today;
+      const today = getTodayDateString();
+      
+      if (diaryText) {
+        diaryText.value = draft.text || "";
+      }
+      if (entryDate) {
+        // 始终默认显示当天日期
+        entryDate.value = today;
+      }
       if (draft.weather) {
         currentWeather = draft.weather;
-        updateWeatherDisplay();
+      } else {
+        // 默认选择第一个心情图标
+        currentWeather = "sunny";
       }
+      updateWeatherDisplay();
     }
 
     function saveDraft() {
       const diaryText = document.getElementById("diaryText");
       const entryDate = document.getElementById("entryDate");
       safeStorageSet(DRAFT_KEY, {
-        text: diaryText.value,
-        date: entryDate.value || new Date().toISOString().slice(0, 10),
+        text: (diaryText && diaryText.value) || "",
+        date: (entryDate && entryDate.value) || getTodayDateString(),
         weather: currentWeather || null,
       });
     }
@@ -1006,17 +1032,32 @@
       const diaryText = document.getElementById("diaryText");
       const entryDate = document.getElementById("entryDate");
       const text = diaryText.value.trim();
-      const date = entryDate.value || new Date().toISOString().slice(0, 10);
+      const date = entryDate.value || getTodayDateString();
+      
       if (!text) {
         showToast("写点温柔的日记，再来保存吧");
         return;
       }
+      
+      const existingEntries = loadEntries();
+      
+      // 检查是否已有相同日期和完全相同内容的日记
+      const hasDuplicate = existingEntries.some(entry => 
+        entry.date === date && entry.text === text
+      );
+      
+      if (hasDuplicate) {
+        showToast("相同内容已保存过，无需重复保存");
+        return;
+      }
+      
       const now = Date.now();
       const newEntry = { id: `${date}-${now}`, date, text, weather: currentWeather, createdAt: now };
-      entries = [newEntry, ...loadEntries()];
+      entries = [newEntry, ...existingEntries];
       safeStorageSet(ENTRIES_KEY, entries);
+      
       diaryText.value = "";
-      currentWeather = null;
+      currentWeather = "sunny";
       updateWeatherDisplay();
       saveDraft();
       
@@ -1029,19 +1070,52 @@
       showToast("保存成功，已归档到本地");
       renderQuote();
     }
+    
+    function autoSaveEntry() {
+      const diaryText = document.getElementById("diaryText");
+      const entryDate = document.getElementById("entryDate");
+      const text = diaryText.value.trim();
+      const date = entryDate.value || getTodayDateString();
+      if (!text) {
+        return;
+      }
+      
+      const existingEntries = loadEntries();
+      // 检查是否已有相同日期和完全相同内容的日记，避免重复保存
+      const hasDuplicate = existingEntries.some(entry => 
+        entry.date === date && entry.text === text
+      );
+      
+      if (!hasDuplicate) {
+        const now = Date.now();
+        const newEntry = { id: `${date}-${now}`, date, text, weather: currentWeather, createdAt: now };
+        entries = [newEntry, ...existingEntries];
+        safeStorageSet(ENTRIES_KEY, entries);
+        
+        // 找到刚保存日期在排序列表中的索引
+        const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+        currentEntryIndex = sortedUniqueDates.indexOf(date);
+        selectedDate = date;
+        
+        renderCalendar();
+        showToast("日记已自动保存 ✨");
+      }
+    }
 
     
 
     function updateWeatherDisplay() {
       const weatherIcons = document.getElementById("weatherIcons");
-      const icons = weatherIcons.querySelectorAll(".weather-icon");
-      icons.forEach(icon => {
-        if (icon.dataset.weather === currentWeather) {
-          icon.classList.add("selected");
-        } else {
-          icon.classList.remove("selected");
-        }
-      });
+      if (weatherIcons) {
+        const icons = weatherIcons.querySelectorAll(".weather-icon");
+        icons.forEach(icon => {
+          if (icon.dataset.weather === currentWeather) {
+            icon.classList.add("selected");
+          } else {
+            icon.classList.remove("selected");
+          }
+        });
+      }
     }
 
     function formatTimeLabel(timestamp) {
@@ -1141,22 +1215,38 @@
             ${weekdays.map(d => `<div class="calendar-weekday">${d}</div>`).join("")}
       `;
       
+      // 获取今天的日期（不包含时间）
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // 安全的日期转字符串函数，避免时区问题
+      function toDateString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      
       // 填充日期
       for (let i = 0; i < 42; i++) {
         const day = new Date(startDay);
         day.setDate(startDay.getDate() + i);
-        const dateStr = day.toISOString().slice(0, 10);
+        const dateStr = toDateString(day);
         const isOtherMonth = day.getMonth() !== month;
         const hasEntry = entryDates.has(dateStr);
         const isSelected = selectedDate === dateStr;
+        const isFuture = day > today;
         
         let classes = "calendar-day";
         if (isOtherMonth) classes += " other-month";
         if (hasEntry) classes += " has-entry";
         if (isSelected) classes += " selected";
+        if (isFuture) classes += " future";
+        
+        const clickHandler = isFuture ? "" : `onclick="selectDate('${dateStr}')"`;
         
         calendarHTML += `
-          <div class="${classes}" onclick="selectDate('${dateStr}')">
+          <div class="${classes}" ${clickHandler} style="${isFuture ? 'cursor: not-allowed; opacity: 0.5;' : ''}">
             ${day.getDate()}
           </div>
         `;
@@ -1176,7 +1266,7 @@
           <div class="entry-nav-header">
             <button class="entry-nav-btn" onclick="prevEntry()" ${currentEntryIndex === 0 ? "disabled" : ""}>‹</button>
             <span class="entry-nav-date">
-              📅 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date(currentDate + "T00:00"))}
+              📅 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(parseLocalDate(currentDate))}
             </span>
             <button class="entry-nav-btn" onclick="nextEntry()" ${currentEntryIndex === sortedUniqueDates.length - 1 ? "disabled" : ""}>›</button>
           </div>
@@ -1185,11 +1275,14 @@
               .sort((a, b) => b.createdAt - a.createdAt)
               .map(
                 (item) => `
-                  <div class="archive-day-item theme-text">
-                    <div style="display:flex;align-items:center;gap:0.5rem;">
-                      ${getWeatherEmoji(item.weather)}
-                      <p class="text-sm whitespace-pre-wrap" style="margin:0;">${escapeHtml(item.text)}</p>
+                  <div class="archive-day-item theme-text" style="margin-bottom: 0.5rem;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;justify-content:space-between;margin-bottom:0.5rem;">
+                      <div style="display:flex;align-items:center;gap:0.5rem;">
+                        ${getWeatherEmoji(item.weather)}
+                      </div>
+                      <button class="save-btn" style="padding:0.25rem 0.75rem;font-size:0.75rem;border-radius:999px;background:white;color:var(--button-bg);border:1px solid var(--button-bg);" onclick="deleteEntry('${item.id}')">删除</button>
                     </div>
+                    <p class="text-sm whitespace-pre-wrap" style="margin:0;">${escapeHtml(item.text)}</p>
                   </div>
                 `,
               )
@@ -1218,7 +1311,7 @@
       currentEntryIndex = sortedUniqueDates.indexOf(dateStr);
       if (currentEntryIndex === -1) currentEntryIndex = 0;
       // 切换日历到该日期所在月份
-      const date = new Date(dateStr + "T00:00");
+      const date = parseLocalDate(dateStr);
       currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
       renderCalendar();
     }
@@ -1229,7 +1322,7 @@
         currentEntryIndex--;
         selectedDate = sortedUniqueDates[currentEntryIndex];
         // 切换日历到该日期所在月份
-        const date = new Date(selectedDate + "T00:00");
+        const date = parseLocalDate(selectedDate);
         currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
         renderCalendar();
       }
@@ -1241,10 +1334,34 @@
         currentEntryIndex++;
         selectedDate = sortedUniqueDates[currentEntryIndex];
         // 切换日历到该日期所在月份
-        const date = new Date(selectedDate + "T00:00");
+        const date = parseLocalDate(selectedDate);
         currentCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
         renderCalendar();
       }
+    }
+    
+    function deleteEntry(entryId) {
+      if (!confirm("确定要删除这条日记吗？")) {
+        return;
+      }
+      
+      entries = entries.filter(e => e.id !== entryId);
+      safeStorageSet(ENTRIES_KEY, entries);
+      
+      // 重新计算当前索引
+      const sortedUniqueDates = [...new Set(entries.map(e => e.date))].sort();
+      if (sortedUniqueDates.length > 0) {
+        if (currentEntryIndex >= sortedUniqueDates.length) {
+          currentEntryIndex = sortedUniqueDates.length - 1;
+        }
+        selectedDate = sortedUniqueDates[currentEntryIndex];
+      } else {
+        currentEntryIndex = 0;
+        selectedDate = getTodayDateString();
+      }
+      
+      renderCalendar();
+      showToast("日记已删除");
     }
 
     function renderQuote() {
@@ -1282,18 +1399,28 @@
           icon.addEventListener("click", (e) => {
             e.stopPropagation();
             const weather = icon.dataset.weather;
-            currentWeather = currentWeather === weather ? null : weather;
+            currentWeather = weather;
             updateWeatherDisplay();
             saveDraft();
+            showToast("心情已保存");
           });
         });
       }
 
       if (diaryText) {
+        let autoSaveTimer = null;
         diaryText.addEventListener("input", () => {
           diaryText.classList.add("typing");
           window.requestAnimationFrame(() => diaryText.classList.remove("typing"));
           saveDraftDebounced();
+          
+          // 自动保存日记功能：输入完成后延迟2秒自动保存
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(() => {
+            if (diaryText.value.trim()) {
+              autoSaveEntry();
+            }
+          }, 2000);
         });
       }
     }
@@ -1306,6 +1433,12 @@
       applyTheme(Number.isInteger(savedTheme) ? savedTheme : 0);
       renderCalendar();
       document.body.style.opacity = "1";
+      
+      // 动态设置日期输入框的最大值为今天
+      const entryDate = document.getElementById("entryDate");
+      if (entryDate) {
+        entryDate.max = getTodayDateString();
+      }
       
       // 绑定事件监听器
       bindEventListeners();
