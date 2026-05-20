@@ -991,28 +991,35 @@
       toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
     }
 
-    function loadDraft() {
-      const draft = safeStorageGet(DRAFT_KEY, {});
-      const diaryText = document.getElementById("diaryText");
-      const entryDate = document.getElementById("entryDate");
-      
-      const today = getTodayDateString();
-      
-      if (diaryText) {
-        diaryText.value = draft.text || "";
-      }
-      if (entryDate) {
-        // 始终默认显示当天日期
-        entryDate.value = today;
-      }
-      if (draft.weather) {
-        currentWeather = draft.weather;
-      } else {
-        // 默认选择第一个心情图标
-        currentWeather = "sunny";
-      }
-      updateWeatherDisplay();
-    }
+  function loadDraft() {
+  const draft = safeStorageGet(DRAFT_KEY, {});
+  const diaryText = document.getElementById("diaryText");
+  const entryDate = document.getElementById("entryDate");
+  const today = getTodayDateString();
+
+  if (diaryText) {
+    diaryText.value = draft.text || "";
+  }
+  if (entryDate) {
+    // 始终默认显示当天日期
+    entryDate.value = today;
+  }
+
+  // 修复else分支，并加上安全判断
+  if (draft && draft.weather) {
+    currentWeather = draft.weather;
+  } else {
+    // 默认选择第一个心情图标
+    currentWeather = "sunny";
+  }
+
+  updateWeatherDisplay();
+}
+
+// 关键：确保页面加载完成后再调用
+document.addEventListener('DOMContentLoaded', function() {
+  loadDraft();
+});
 
     function saveDraft() {
       const diaryText = document.getElementById("diaryText");
